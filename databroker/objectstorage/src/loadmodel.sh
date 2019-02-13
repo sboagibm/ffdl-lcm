@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+
 # Download model from Object Storage to $DATA_DIR.
 
 # Validate input.

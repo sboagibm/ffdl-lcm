@@ -15,13 +15,7 @@
 #
 
 
-FROM ubuntu:16.04
-
-ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update && apt-get install --yes ca-certificates curl ldnsutils
-
-#ADD vendor/github.com/AISphere/ffdl-commons/grpc-health-checker/bin/grpc-health-checker /usr/local/bin/
-#RUN chmod +x /usr/local/bin/grpc-health-checker
+FROM dlaas-service-base:ubuntu16.04
 
 # Set environment variables.
 ENV ETCD_VERSION=3.3.3

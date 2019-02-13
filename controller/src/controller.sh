@@ -16,12 +16,6 @@
 # limitations under the License.
 #
 
-# Expected inputs:
-#   JOB_STATE_DIR env var: directory where job state files are stored.
-#   JOB_LEARNER_ZNODE_PATH env var: base path to the learner znode
-#   JOB_LEARNER_ZNODE_STATUS_PATH env var: base path to status of the learner node
-#   JOB_BASE_PATH: base path of the job, used for halting
-#
 #   $1 arg: the ZNode path.
 
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

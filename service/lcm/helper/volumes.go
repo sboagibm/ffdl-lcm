@@ -17,6 +17,8 @@
 package helper
 
 import (
+	"fmt"
+	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/AISphere/ffdl-commons/config"
@@ -78,6 +80,9 @@ func (volumes Volumes) CreateDataVolume() v1core.Volume {
 
 	if volumes.SharedNonSplitLearnerHelperVolume != nil {
 		//local volume is required since operating in non split mode
+		if viper.GetBool(config.LcmFluentdEmetricsEnable) {
+			return hostDirJobVolume(volumes.SharedNonSplitLearnerHelperVolume.Name, trainingID)
+		}
 		return localEmptyDirVolume(volumes.SharedNonSplitLearnerHelperVolume.Name)
 	}
 
@@ -116,7 +121,7 @@ func createETCDVolume(name string) v1core.Volume {
 		Name: name,
 		VolumeSource: v1core.VolumeSource{
 			Secret: &v1core.SecretVolumeSource{
-				SecretName: "lcm-secrets",
+				SecretName: config.GetLCMSecret(),
 				Items: []v1core.KeyToPath{
 					v1core.KeyToPath{
 						Key:  "DLAAS_ETCD_CERT",
@@ -132,6 +137,20 @@ func localEmptyDirVolume(name string) v1core.Volume {
 	return v1core.Volume{
 		Name:         name,
 		VolumeSource: v1core.VolumeSource{EmptyDir: &v1core.EmptyDirVolumeSource{}},
+	}
+}
+
+func hostDirJobVolume(name string, trainingID string) v1core.Volume {
+	path := fmt.Sprintf("/dlaasjobs/%s", trainingID)
+	var hostDirName v1core.HostPathType = v1core.HostPathDirectoryOrCreate
+	return v1core.Volume{
+		Name: name,
+		VolumeSource: v1core.VolumeSource{
+			HostPath: &v1core.HostPathVolumeSource{
+				Path: path,
+				Type: &hostDirName,
+			},
+		},
 	}
 }
 

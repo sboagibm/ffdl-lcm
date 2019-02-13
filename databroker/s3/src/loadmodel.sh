@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+
 # Download model from S3 Object Storage to $DATA_DIR.
 
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

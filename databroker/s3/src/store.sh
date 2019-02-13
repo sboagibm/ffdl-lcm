@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+
 # Upload files from $DATA_DIR to Object Storage.
 
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

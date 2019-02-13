@@ -68,7 +68,7 @@ const (
 // need to use 1 and not 0 because job monitor tracks path starting with learner 1 and not 0
 const masterLearnerID = 1
 
-func constructControllerContainer(trainingID string, etcdVolumeMount, sharedVolumeMount v1core.VolumeMount, mountTrainingDataStoreInLearner, mountResultsStoreInLearner bool) v1core.Container {
+func constructControllerContainer(trainingID string, etcdVolumeMount, sharedVolumeMount v1core.VolumeMount, skipStoreData, skipStoreResults bool) v1core.Container {
 
 	learnerNodeBasePath := learnerNodeEtcdBasePath(trainingID, masterLearnerID)
 	learnerNodeStatusPath := learnerNodeEtcdStatusPath(trainingID, masterLearnerID)
@@ -81,7 +81,7 @@ func constructControllerContainer(trainingID string, etcdVolumeMount, sharedVolu
 				SecretKeyRef: &v1core.SecretKeySelector{
 					Key: lookupkey,
 					LocalObjectReference: v1core.LocalObjectReference{
-						Name: "lcm-secrets",
+						Name: config.GetLCMSecret(),
 					},
 				},
 			},
@@ -96,10 +96,10 @@ func constructControllerContainer(trainingID string, etcdVolumeMount, sharedVolu
 	cmd := fmt.Sprintf("controller.sh")
 
 	// short-circuit the load and store databrokers when we mount object storage directly
-	if mountResultsStoreInLearner {
+	if skipStoreResults {
 		cmd = "echo 0 > " + sharedVolumeMount.MountPath + "/store-results.exit && " + cmd
 	}
-	if mountTrainingDataStoreInLearner {
+	if skipStoreData {
 		cmd = "echo 0 > " + sharedVolumeMount.MountPath + "/load-data.exit && " + cmd
 	}
 
@@ -209,11 +209,11 @@ func fetchImageNameFromEvaluationMetrics(evalMetricsString string,
 }
 
 func findTrainingDataServiceTag(k8sClient kubernetes.Interface, logr *logger.LocLoggingEntry) string {
-	selector := "service==" + config.GetValue(config.TdsServiceName)
+	selector := "service==" + config.GetTDSServiceName()
 	podInterface := k8sClient.Core().Pods(config.GetPodNamespace())
 	pods, err := podInterface.List(metav1.ListOptions{LabelSelector: selector})
 	if err != nil {
-		logr.WithError(err).Debugf("Could not find service=%s", os.Getenv("DATA_SERVICE_NAME"))
+		logr.WithError(err).Debugf("Could not find service=%s", config.GetTDSServiceName())
 		// bad fallback, ideally should never happen
 		return logCollectorBadTagNoTDSFound
 	}
@@ -239,7 +239,6 @@ func constructLogCollector(sharedVolumeMount v1core.VolumeMount, k8sClient kuber
 	envVars []v1core.EnvVar, logr *logger.LocLoggingEntry) v1core.Container {
 
 	defaultTag := findTrainingDataServiceTag(k8sClient, logr)
-
 	logCollectorImageShortName, learnerEMTag := fetchImageNameFromEvaluationMetrics(req.EvaluationMetricsSpec, defaultTag, req.Framework, req.Version, logr)
 
 	dockerRegistry := viper.GetString(config.LearnerRegistryKey)
@@ -259,6 +258,7 @@ func constructLogCollector(sharedVolumeMount v1core.VolumeMount, k8sClient kuber
 
 	vars = append(vars, v1core.EnvVar{Name: "JOB_STATE_DIR", Value: sharedVolumeMount.MountPath})
 	vars = append(vars, v1core.EnvVar{Name: "TRAINING_DATA_NAMESPACE", Value: config.GetPodNamespace()})
+	vars = append(vars, v1core.EnvVar{Name: "TRAINING_DATA_SERVICE_NAME", Value: config.GetTDSServiceName()})
 
 	if req.EvaluationMetricsSpec != "" {
 		vars = append(vars, v1core.EnvVar{Name: "EM_DESCRIPTION", Value: req.EvaluationMetricsSpec})
@@ -299,15 +299,15 @@ func constructLoadTrainingDataContainer(sharedVolumeMount v1core.VolumeMount, jo
 		if strings.HasPrefix(ev.Name, prefix) {
 			if ev.Name == "DATA_STORE_APIKEY" {
 				vars = append(vars, v1core.EnvVar{Name: "DATA_STORE_PASSWORD", Value: ev.Value})
-			} else if ev.Name == "DATA_STORE_OBJECTID" {
+			} else if strings.HasPrefix(ev.Name, "DATA_STORE_OBJECTID") {
 				vars = append(vars, v1core.EnvVar{Name: "DATA_STORE_BUCKET", Value: ev.Value})
 			} else {
 				vars = append(vars, ev)
 			}
 		}
-		if ev.Name == "DATA_DIR" { // special case
+		if strings.HasPrefix(ev.Name, "DATA_DIR") { // special case
 			dataDir := path.Join(sharedVolumeMount.MountPath, ev.Value)
-			vars = append(vars, v1core.EnvVar{Name: "DATA_DIR", Value: dataDir})
+			vars = append(vars, v1core.EnvVar{Name: ev.Name, Value: dataDir})
 		}
 	}
 
@@ -392,7 +392,7 @@ func constructLoadModelContainer(sharedVolumeMount v1core.VolumeMount, jobEnvVar
 	return container
 }
 
-func constructLearnerContainer(req *service.JobDeploymentRequest, envVars []v1core.EnvVar, learnerVolumeMounts []v1core.VolumeMount, sharedVolumeMount v1core.VolumeMount, mountTrainingDataStoreInLearner, mountResultsStoreInLearner bool, logr *logger.LocLoggingEntry) v1core.Container {
+func constructLearnerContainer(req *service.JobDeploymentRequest, envVars []v1core.EnvVar, learnerVolumeMounts []v1core.VolumeMount, sharedVolumeMount v1core.VolumeMount, mountTrainingDataStoreInLearner, mountResultsStoreInLearner, mountSSHCertsInLearner bool, logr *logger.LocLoggingEntry, useLogCollector bool) v1core.Container {
 
 	cpuCount := v1resource.NewMilliQuantity(int64(float64(req.Resources.Cpus)*1000.0), v1resource.DecimalSI)
 	gpuCount := v1resource.NewQuantity(int64(req.Resources.Gpus), v1resource.DecimalSI)
@@ -423,24 +423,38 @@ func constructLearnerContainer(req *service.JobDeploymentRequest, envVars []v1co
 	//FIXME need to have the learner IDs start from 1 rather than 0
 	var cmd string
 	var doCondExitWrite = true
-	if mountResultsStoreInLearner {
-		loadModelComand := `
-			echo "Starting Training $TRAINING_ID"
-			mkdir -p "$MODEL_DIR" ;
+	if mountTrainingDataStoreInLearner {
+		loadModelComand := `echo "Starting Training $TRAINING_ID"`
+		learnerCommand := fmt.Sprintf(`%s bash -c ' train.sh 2>&1 | tee -a %s/latest-log; exit ${PIPESTATUS[0]}'`, command, sharedVolumeMount.MountPath)
+		storeLogsCommand := `bash -c 'exit 0'`
+		if mountResultsStoreInLearner {
+			loadModelComand += `mkdir -p "$MODEL_DIR"
 			unzip -nq "$RESULT_DIR/_submitted_code/model.zip" -d "$MODEL_DIR"`
-		learnerCommand := `
+			learnerCommand = `
 			for i in ${!ALERTMANAGER*} ${!DLAAS*} ${!ETCD*} ${!GRAFANA*} ${!HOSTNAME*} ${!KUBERNETES*} ${!MONGO*} ${!PUSHGATEWAY*}; do unset $i; done;
 			export LEARNER_ID=$((${DOWNWARD_API_POD_NAME##*-} + 1)) ;
 			mkdir -p $RESULT_DIR/learner-$LEARNER_ID ;
-			mkdir -p $CHECKPOINT_DIR ;`
-		learnerCommand += learnerBashCommand
-
-		storeLogsCommand := `
-			echo Calling copy logs.
+			mkdir -p $CHECKPOINT_DIR ;
+			RESULT_STORE_PUBLIC_AUTHURL=$(echo $RESULT_STORE_AUTHURL | sed -e 's/service.networklayer.com/softlayer.net/g' | sed -e 's/.private//g')
+			echo Starting log sync
+			syncLogs(){
+				while true; do
+				AWS_ACCESS_KEY_ID=$RESULT_STORE_USERNAME AWS_SECRET_ACCESS_KEY=$RESULT_STORE_APIKEY \
+	timeout -s 3 20 aws --endpoint-url=$RESULT_STORE_PUBLIC_AUTHURL s3 sync $LOG_DIR s3://$RESULT_STORE_OBJECTID/learner-$LEARNER_ID
+				sleep 40
+			done
+			}
+			syncLogs & `
+			storeLogsCommand = `
 			mv -nf $LOG_DIR/* $RESULT_DIR/learner-$LEARNER_ID ;
 			ERROR_CODE=$? ;
 			echo $ERROR_CODE > $RESULT_DIR/learner-$LEARNER_ID/.log-copy-complete ;
 			bash -c 'exit $ERROR_CODE'`
+		}
+		if !useLogCollector {
+			learnerCommand += `echo 0 > $JOB_STATE_DIR/lc.exit ;`
+		}
+		learnerCommand += learnerBashCommand
 		cmd = wrapCommands([]containerCommands{
 			{cmd: loadModelComand, container: loadModelContainerName},
 			{cmd: learnerCommand, container: learnerContainerName},
@@ -452,7 +466,6 @@ func constructLearnerContainer(req *service.JobDeploymentRequest, envVars []v1co
 		cmd = wrapCommand(command, learnerContainerName, sharedVolumeMount.MountPath, doCondExitWrite)
 	}
 
-	//
 	container := learner.Container{
 		Image: image,
 		Resources: learner.Resources{
@@ -464,8 +477,8 @@ func constructLearnerContainer(req *service.JobDeploymentRequest, envVars []v1co
 		Command:      cmd,
 	}
 
-	learnerContainer := learner.CreateContainerSpec(container)
-	//extendLearnerContainer(&learnerContainer, req, logr)
+	learnerContainer := learner.CreateContainerSpec(container, req.Labels["kube_major"], req.Labels["kube_minor"])
+	extendLearnerContainer(&learnerContainer, req)
 	return learnerContainer
 }
 
@@ -675,8 +688,6 @@ func dataBrokerImageName(vars []v1core.EnvVar) string {
 			}
 		}
 	}
-	//servicesTag := viper.GetString(config.ServicesTagKey)
-	//logr.Debugf("servicesTag: %s", servicesTag)
 	//TODO: Tag the databroker and statusrecorder images
 	dockerRegistry := viper.GetString(config.LearnerRegistryKey)
 	dataBrokerTag := viper.GetString(config.DataBrokerTagKey)
@@ -690,6 +701,13 @@ func contains(arr []string, str string) bool {
 		if a == str {
 			return true
 		}
+	}
+	return false
+}
+
+func useLogCollectors(k8sClient kubernetes.Interface, logr *logger.LocLoggingEntry) bool {
+	if findTrainingDataServiceTag(k8sClient, logr) != logCollectorBadTagNoTDSFound {
+		return true
 	}
 	return false
 }
