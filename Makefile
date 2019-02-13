@@ -38,5 +38,6 @@ docker-push: docker-push-base docker-push-controller           ## Push docker im
 
 clean: clean-base                      ## clean all build artifacts
 	if [ -d ./cmd/lcm/bin ]; then rm -r ./cmd/lcm/bin; fi
+	rm -rf certs
 
 .PHONY: all clean doctor usage showvars test-unit
