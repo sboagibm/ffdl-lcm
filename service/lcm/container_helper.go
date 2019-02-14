@@ -18,7 +18,6 @@ package lcm
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"strings"
 	"text/template"
@@ -478,7 +477,7 @@ func constructLearnerContainer(req *service.JobDeploymentRequest, envVars []v1co
 	}
 
 	learnerContainer := learner.CreateContainerSpec(container, req.Labels["kube_major"], req.Labels["kube_minor"])
-	extendLearnerContainer(&learnerContainer, req)
+	extendLearnerContainer(&learnerContainer, req, logr)
 	return learnerContainer
 }
 

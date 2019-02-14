@@ -52,7 +52,7 @@ import:
   - health
   - health/grpc_health_v1
 - package: gopkg.in/yaml.v2
-  version: ^2.2.1
+- package: gopkg.in/mgo.v2
 - package: k8s.io/api
   subpackages:
   - apps/v1beta1

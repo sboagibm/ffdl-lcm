@@ -76,7 +76,7 @@ func (volumes Volumes) CreateETCDVolumeMount() v1core.VolumeMount {
 }
 
 //CreateDataVolume ...
-func (volumes Volumes) CreateDataVolume() v1core.Volume {
+func (volumes Volumes) CreateDataVolume(trainingID string) v1core.Volume {
 
 	if volumes.SharedNonSplitLearnerHelperVolume != nil {
 		//local volume is required since operating in non split mode
