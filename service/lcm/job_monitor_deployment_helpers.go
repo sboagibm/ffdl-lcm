@@ -17,7 +17,6 @@
 package lcm
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/AISphere/ffdl-commons/config"
@@ -129,8 +128,6 @@ func defineJobMonitorDeployment(req *service.JobDeploymentRequest, envVars []v1c
 	} else {
 		dockerRegistry = viper.GetString(config.LearnerRegistryKey)
 	}
-
-	fmt.Sprintf("%s/jobmonitor:%s", dockerRegistry, jmTag)
 	jmImage := jobmonitorImageNameExtended(dockerRegistry, jmTag)
 	imagePullSecret := viper.GetString(config.LearnerImagePullSecretKey)
 
