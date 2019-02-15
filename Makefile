@@ -26,6 +26,8 @@ protoc: protoc-trainer                 ## Build gRPC .proto files into vendor di
 
 install-deps: install-deps-base protoc ## Remove vendor directory, rebuild dependencies
 
+glide-update: glide-update-base        ## Run full glide rebuild
+
 docker-build-controller:  ## Build controller image
 	(cd controller && DOCKER_IMG_NAME="controller" make docker-build)
 
