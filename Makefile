@@ -28,15 +28,31 @@ install-deps: install-deps-base protoc ## Remove vendor directory, rebuild depen
 
 glide-update: glide-update-base        ## Run full glide rebuild
 
+# === Job Monitor Build ===
+
+build-x86-64-jobmonitor:
+	(cd ./jmbuild/ && CGO_ENABLED=0 GOOS=linux go build -ldflags "-s" -a -installsuffix cgo -o bin/main)
+
+docker-build-jobmonitor: install-deps-if-needed
+	make build-x86-64-jobmonitor
+	(cd ./jmbuild/ && docker build --label git-commit=$(shell git rev-list -1 HEAD) -t "$(DOCKER_HOST_NAME)/$(DOCKER_NAMESPACE)/jobmonitor:$(DLAAS_IMAGE_TAG)" .)
+
+docker-push-jobmonitor:
+	docker push "$(DOCKER_HOST_NAME)/$(DOCKER_NAMESPACE)/jobmonitor:$(DLAAS_IMAGE_TAG)"
+
+# === Controller Build ===
+
 docker-build-controller:  ## Build controller image
 	(cd controller && DOCKER_IMG_NAME="controller" make docker-build)
 
 docker-push-controller:  ## Push controller docker image to a docker hub
 	(cd controller && DOCKER_IMG_NAME="controller" make docker-push)
 
-docker-build: docker-build-base docker-build-controller        ## Install dependencies if vendor folder is missing, build go code, build docker images (includes controller).
+# === Service Build ===
 
-docker-push: docker-push-base docker-push-controller           ## Push docker image to a docker hub
+docker-build: docker-build-base docker-build-controller docker-build-jobmonitor     ## Install dependencies if vendor folder is missing, build go code, build docker images (includes controller).
+
+docker-push: docker-push-base docker-push-controller docker-push-jobmonitor         ## Push docker image to a docker hub
 
 clean: clean-base                      ## clean all build artifacts
 	if [ -d ./cmd/lcm/bin ]; then rm -r ./cmd/lcm/bin; fi
