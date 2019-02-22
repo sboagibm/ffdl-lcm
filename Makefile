@@ -31,7 +31,7 @@ glide-update: glide-update-base        ## Run full glide rebuild
 # === Job Monitor Build ===
 
 build-x86-64-jobmonitor:
-	(cd ./jmbuild/ && CGO_ENABLED=0 GOOS=linux go build -ldflags "-s" -a -installsuffix cgo -o bin/main)
+	(cd ./jmbuild/ && rm -rf bin && CGO_ENABLED=0 GOOS=linux go build -ldflags "-s" -a -installsuffix cgo -o bin/main)
 
 docker-build-jobmonitor: install-deps-if-needed
 	make build-x86-64-jobmonitor
