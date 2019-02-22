@@ -417,7 +417,9 @@ func constructLearnerContainer(req *service.JobDeploymentRequest, envVars []v1co
 			echo "$(date): Starting training job" > $JOB_STATE_DIR/latest-log ;
 			eval "$TRAINING_COMMAND 2>&1" >> $JOB_STATE_DIR/latest-log 2>&1 ;
 			cmd_exit=$? ;
-			echo "$(date): Training exit with exit code ${cmd_exit}." >> $JOB_STATE_DIR/latest-log`
+			echo "$(date): Training exit with exit code ${cmd_exit}." >> $JOB_STATE_DIR/latest-log 2>&1;
+			bash -c 'exit ${cmd_exit}'`
+
 	}
 	//FIXME need to have the learner IDs start from 1 rather than 0
 	var cmd string

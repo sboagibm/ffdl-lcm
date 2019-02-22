@@ -28,9 +28,18 @@ install-deps: install-deps-base protoc ## Remove vendor directory, rebuild depen
 
 glide-update: glide-update-base        ## Run full glide rebuild
 
+# === Health Checker Sub Build ===
+
+build-health-checker-deps: clean-health-checker-builds
+	mkdir build
+	cp -r vendor/github.com/AISphere/ffdl-commons/grpc-health-checker build/
+	cd build/grpc-health-checker && make build-x86-64
+	cp -r build ./controller/build
+	cp -r build ./jmbuild/build
+
 # === Job Monitor Build ===
 
-build-x86-64-jobmonitor:
+build-x86-64-jobmonitor: build-health-checker-deps
 	(cd ./jmbuild/ && rm -rf bin && CGO_ENABLED=0 GOOS=linux go build -ldflags "-s" -a -installsuffix cgo -o bin/main)
 
 docker-build-jobmonitor: install-deps-if-needed
@@ -54,8 +63,15 @@ docker-build: docker-build-base docker-build-controller docker-build-jobmonitor 
 
 docker-push: docker-push-base docker-push-controller docker-push-jobmonitor         ## Push docker image to a docker hub
 
-clean: clean-base                      ## clean all build artifacts
-	if [ -d ./cmd/lcm/bin ]; then rm -r ./cmd/lcm/bin; fi
-	rm -rf certs
+clean-health-checker-builds:
+	rm -rf ./build
+	rm -rf ./controller/build
+	rm -rf ./jmbuild/build
+
+clean-helper-bins:
+	rm -rf ./bin
+	rm -r ./jmbuild/bin
+
+clean: clean-base clean-health-checker-builds clean-helper-bin                  ## clean all build artifacts
 
 .PHONY: all clean doctor usage showvars test-unit

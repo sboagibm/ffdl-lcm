@@ -29,7 +29,7 @@ import (
 	"github.com/AISphere/ffdl-commons/metricsmon"
 	"github.com/AISphere/ffdl-lcm/lcmconfig"
 	"github.com/AISphere/ffdl-lcm/service"
-	client "github.com/AISphere/ffdl-lcm/trainer-client"
+	"github.com/AISphere/ffdl-trainer/client"
 	"github.com/AISphere/ffdl-trainer/trainer/grpc_trainer_v2"
 
 	"github.com/cenkalti/backoff"
