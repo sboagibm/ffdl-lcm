@@ -24,7 +24,7 @@ include ../ffdl-commons/ffdl-commons.mk
 
 protoc: protoc-trainer                 ## Build gRPC .proto files into vendor directory
 
-install-deps: install-deps-base protoc ## Remove vendor directory, rebuild dependencies
+install-deps: install-deps-base protoc build-health-checker-deps ## Remove vendor directory, rebuild dependencies
 
 glide-update: glide-update-base        ## Run full glide rebuild
 
@@ -39,7 +39,7 @@ build-health-checker-deps: clean-health-checker-builds
 
 # === Job Monitor Build ===
 
-build-x86-64-jobmonitor: build-health-checker-deps
+build-x86-64-jobmonitor:
 	(cd ./jmbuild/ && rm -rf bin && CGO_ENABLED=0 GOOS=linux go build -ldflags "-s" -a -installsuffix cgo -o bin/main)
 
 docker-build-jobmonitor: install-deps-if-needed
