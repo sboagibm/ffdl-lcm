@@ -66,6 +66,16 @@ func CreatePVCFromBOM(sharedVolumeClaim *v1core.PersistentVolumeClaim, k8sClient
 }
 
 //CreateETCDVolume ...
+func (volumes Volumes) CreateSSLVolume() v1core.Volume {
+	return createSSLVolume(volumes.ETCDVolume.Name)
+}
+
+//CreateETCDVolumeMount ...
+func (volumes Volumes) CreateSSLVolumeMount() v1core.VolumeMount {
+	return createSSLVolumeMount(volumes.ETCDVolume.Name)
+}
+
+//CreateETCDVolume ...
 func (volumes Volumes) CreateETCDVolume() v1core.Volume {
 	return createETCDVolume(volumes.ETCDVolume.Name)
 }
@@ -105,6 +115,26 @@ func (volumes Volumes) DynamicPVCReference() *v1core.PersistentVolumeClaim {
 	}
 	return volumes.SharedSplitLearnerHelperVolume.PVC
 
+}
+
+func createSSLVolumeMount(name string) v1core.VolumeMount {
+	return v1core.VolumeMount{
+		Name:      "ssl-certificates",
+		MountPath: "/etc/ssl/dlaas/",
+		ReadOnly:  true,
+	}
+}
+
+func createSSLVolume(name string) v1core.Volume {
+	// Volume with etcd certificates.
+	return v1core.Volume{
+		Name: "ssl-certificates",
+		VolumeSource: v1core.VolumeSource{
+			Secret: &v1core.SecretVolumeSource{
+				SecretName: config.GetSSLSecret(),
+			},
+		},
+	}
 }
 
 func createETCDVolumeMount(name string) v1core.VolumeMount {

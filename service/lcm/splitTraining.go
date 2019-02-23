@@ -54,10 +54,10 @@ func (t splitTraining) Start() error {
 func (t splitTraining) deploymentSpecForHelper() *v1beta1.Deployment {
 
 	helperDefn := t.helper
-	helperContainers := t.constructAuxillaryContainers()
+	helperContainers := t.constructAuxillaryContainers(true)
 
 	labelsMap := map[string]string{"training_id": t.req.TrainingId, "user_id": t.req.UserId, "deploy_zone": t.req.Labels["deploy_zone"], "PVC": helperDefn.sharedVolume.PersistentVolumeClaim.ClaimName, "framework": t.req.Framework + t.req.Version, "gpu_type": t.req.Resources.GpuType}
-	podSpec := helper.CreatePodSpec(helperContainers, []v1core.Volume{helperDefn.etcdVolume, helperDefn.sharedVolume}, labelsMap)
+	podSpec := helper.CreatePodSpec(helperContainers, []v1core.Volume{helperDefn.etcdVolume, helperDefn.sslCertsVolume, helperDefn.sharedVolume}, labelsMap)
 	deploymentSpec := helper.CreateDeploymentForHelper(helperDefn.name, podSpec)
 	return deploymentSpec
 

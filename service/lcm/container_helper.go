@@ -234,7 +234,7 @@ func findTrainingDataServiceTag(k8sClient kubernetes.Interface, logr *logger.Loc
 	return logCollectorBadTagNoTDSFound
 }
 
-func constructLogCollector(sharedVolumeMount v1core.VolumeMount, k8sClient kubernetes.Interface, req *service.JobDeploymentRequest,
+func constructLogCollector(sssVolumeMount *v1core.VolumeMount, sharedVolumeMount v1core.VolumeMount, k8sClient kubernetes.Interface, req *service.JobDeploymentRequest,
 	envVars []v1core.EnvVar, logr *logger.LocLoggingEntry) v1core.Container {
 
 	defaultTag := findTrainingDataServiceTag(k8sClient, logr)
@@ -267,6 +267,11 @@ func constructLogCollector(sharedVolumeMount v1core.VolumeMount, k8sClient kuber
 	memInBytes := int64(logCollectorMemInMB * 1024 * 1024)
 	memCount := v1resource.NewQuantity(memInBytes, v1resource.DecimalSI)
 
+	volumeMounts := []v1core.VolumeMount{sharedVolumeMount}
+	if sssVolumeMount != nil {
+		volumeMounts = append(volumeMounts, *sssVolumeMount)
+	}
+
 	logCollectorContainer := v1core.Container{
 		Name:    logCollectorContainerName,
 		Image:   logCollectorImage,
@@ -282,7 +287,7 @@ func constructLogCollector(sharedVolumeMount v1core.VolumeMount, k8sClient kuber
 				v1core.ResourceMemory: *memCount,
 			},
 		},
-		VolumeMounts:    []v1core.VolumeMount{sharedVolumeMount},
+		VolumeMounts:    volumeMounts,
 		ImagePullPolicy: lcmconfig.GetImagePullPolicy(),
 	}
 	return logCollectorContainer

@@ -106,13 +106,15 @@ type learnerDefinition struct {
 }
 
 type helperDefinition struct {
-	sharedVolume      v1core.Volume
-	etcdVolume        v1core.Volume
-	etcdVolumeMount   v1core.VolumeMount
-	sharedVolumeMount v1core.VolumeMount
-	sharedEnvVars     []v1core.EnvVar
-	sharedVolumeClaim *v1core.PersistentVolumeClaim
-	name              string
+	sharedVolume        v1core.Volume
+	sslCertsVolume      v1core.Volume
+	sslCertsVolumeMount v1core.VolumeMount
+	etcdVolume          v1core.Volume
+	etcdVolumeMount     v1core.VolumeMount
+	sharedVolumeMount   v1core.VolumeMount
+	sharedEnvVars       []v1core.EnvVar
+	sharedVolumeClaim   *v1core.PersistentVolumeClaim
+	name                string
 }
 
 //NewTraining ...
@@ -163,13 +165,15 @@ func NewTraining(ctx context.Context, k8sClient kubernetes.Interface, req *servi
 
 	helperVolumes := volumesForHelper(req, logr)
 	helperDefn := helperDefinition{
-		etcdVolume:        helperVolumes.CreateETCDVolume(),
-		etcdVolumeMount:   helperVolumes.CreateETCDVolumeMount(),
-		sharedEnvVars:     envVarsFromDeploymentRequest,
-		sharedVolume:      helperVolumes.CreateDataVolume(req.Name),
-		sharedVolumeMount: helperVolumes.CreateDataVolumeMount(),
-		sharedVolumeClaim: helperVolumes.DynamicPVCReference(),
-		name:              helperName,
+		sslCertsVolume:      helperVolumes.CreateSSLVolume(),
+		sslCertsVolumeMount: helperVolumes.CreateSSLVolumeMount(),
+		etcdVolume:          helperVolumes.CreateETCDVolume(),
+		etcdVolumeMount:     helperVolumes.CreateETCDVolumeMount(),
+		sharedEnvVars:       envVarsFromDeploymentRequest,
+		sharedVolume:        helperVolumes.CreateDataVolume(req.Name),
+		sharedVolumeMount:   helperVolumes.CreateDataVolumeMount(),
+		sharedVolumeClaim:   helperVolumes.DynamicPVCReference(),
+		name:                helperName,
 	}
 
 	if helperVolumes.SharedNonSplitLearnerHelperVolume != nil {
@@ -366,7 +370,7 @@ func networkPoliciesForDistributedLearners(numberOfLearners int, req *service.Jo
 
 }
 
-func (t *training) constructAuxillaryContainers() []v1core.Container {
+func (t *training) constructAuxillaryContainers(isSplit bool) []v1core.Container {
 	learnerDefn := t.learner
 	helperDefn := t.helper
 	skipStoreResults := learnerDefn.mountResultsStoreInLearner || getValue(learnerDefn.envVars, "RESULT_STORE_OBJECTID") == noResultBucketTag
@@ -374,7 +378,17 @@ func (t *training) constructAuxillaryContainers() []v1core.Container {
 		constructControllerContainer(t.req.TrainingId, helperDefn.etcdVolumeMount, helperDefn.sharedVolumeMount, learnerDefn.mountTrainingDataStoreInLearner, skipStoreResults),
 	}
 	if useLogCollectors(t.k8sClient, t.logr) {
-		helperContainers = append(helperContainers, constructLogCollector(helperDefn.sharedVolumeMount, t.k8sClient, t.req, helperDefn.sharedEnvVars, t.logr))
+		var sslCertsVolumeMount *v1core.VolumeMount = nil
+		if !isSplit {
+			// If non-split mode, the log-collector will be in the same pod as the learner, and should be using
+			// fluentd, and no tds service, thus, it shouldn't need the certs.
+			sslCertsVolumeMount = &helperDefn.sslCertsVolumeMount
+		}
+		helperContainers = append(helperContainers,
+			constructLogCollector(
+				sslCertsVolumeMount,
+				helperDefn.sharedVolumeMount,
+				t.k8sClient, t.req, helperDefn.sharedEnvVars, t.logr))
 	}
 
 	if !learnerDefn.mountTrainingDataStoreInLearner {

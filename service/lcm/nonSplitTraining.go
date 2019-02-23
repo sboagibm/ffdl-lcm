@@ -32,7 +32,7 @@ func (t nonSplitTraining) Start() error {
 	helperDefn := t.helper
 
 	helperAndLearnerVolumes := append(learnerDefn.volumes, helperDefn.etcdVolume, helperDefn.sharedVolume)
-	helperContainers := t.constructAuxillaryContainers()
+	helperContainers := t.constructAuxillaryContainers(false)
 
 	//now create the learner container
 	useLogCollector := useLogCollectors(t.k8sClient, t.logr)
