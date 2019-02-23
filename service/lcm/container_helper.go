@@ -479,7 +479,9 @@ func constructLearnerContainer(req *service.JobDeploymentRequest, envVars []v1co
 	}
 
 	learnerContainer := learner.CreateContainerSpec(container, req.Labels["kube_major"], req.Labels["kube_minor"])
-	// extendLearnerContainer(&learnerContainer, req, logr)
+	if config.IsFfDLExtendedEnabled() {
+		extendLearnerContainer(&learnerContainer, req, logr)
+	}
 	return learnerContainer
 }
 

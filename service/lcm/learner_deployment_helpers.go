@@ -144,6 +144,10 @@ func NewTraining(ctx context.Context, k8sClient kubernetes.Interface, req *servi
 		numLearners, learnerName, mountTrainingDataStoreInLearner, mountResultsStoreInLearner) //only for learner
 
 	learnerVolumes := volumesForLearner(req, envvarsForLearner, mountTrainingDataStoreInLearner, mountResultsStoreInLearner, logr)
+	if config.IsFfDLExtendedEnabled() {
+		learnerVolumeSpecs := learnerVolumes.CreateVolumeForLearner()
+		learnerVolumeSpecs = extendLearnerVolumes(learnerVolumeSpecs, logr)
+	}
 	learnerDefn := learnerDefinition{
 		secrets:                         secretsForDeployingLearner(req, mountTrainingDataStoreInLearner, mountResultsStoreInLearner),
 		networkingPolicy:                networkPoliciesForDistributedLearners(numLearners, req),
