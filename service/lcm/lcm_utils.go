@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 package lcm
 
 import (
@@ -30,11 +31,11 @@ import (
 	"github.com/AISphere/ffdl-commons/config"
 
 	"github.com/AISphere/ffdl-commons/logger"
+	"github.com/AISphere/ffdl-lcm/service"
 	"github.com/AISphere/ffdl-commons/util"
 	"github.com/AISphere/ffdl-lcm/coord"
-	"github.com/AISphere/ffdl-lcm/service"
 
-	client "github.com/AISphere/ffdl-lcm/trainer-client"
+	"github.com/AISphere/ffdl-trainer/client"
 	"github.com/AISphere/ffdl-trainer/trainer/grpc_trainer_v2"
 	"golang.org/x/net/context"
 

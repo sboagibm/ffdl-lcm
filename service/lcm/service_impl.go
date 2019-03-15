@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 package lcm
 
 import (
@@ -27,8 +28,8 @@ import (
 	"github.com/AISphere/ffdl-commons/config"
 	"github.com/AISphere/ffdl-commons/logger"
 	"github.com/AISphere/ffdl-commons/metricsmon"
-	"github.com/AISphere/ffdl-lcm/lcmconfig"
 	"github.com/AISphere/ffdl-lcm/service"
+	"github.com/AISphere/ffdl-lcm/lcmconfig"
 	"github.com/AISphere/ffdl-trainer/client"
 	"github.com/AISphere/ffdl-trainer/trainer/grpc_trainer_v2"
 
@@ -125,6 +126,7 @@ func newService() (*lcmService, error) {
 		return nil, connectivityErr
 	}
 
+	// Determine the cluster environment: Armada/IKS or ICP
 	serverInfo, err := k8sClient.Discovery().ServerVersion()
 	if err != nil {
 		// How can this ever fail? k8sclient likely would have failed above
@@ -215,7 +217,6 @@ func (s *lcmService) deployDistributedTrainingJob(ctx context.Context, req *serv
 
 	logr.WithField("learners", numLearners).Infof("starting deployment of training job in lcm")
 
-	// Initialize distributed training information in Zookeeper
 	if err := createEtcdNodes(s, req.Name, req.UserId, req.TrainingId, numLearners, req.Framework, logr); err != nil {
 		failedToLaunchTrainingsCounter.With(reason, client.ErrCodeEtcdConnection).Add(1)
 		logr.WithError(err).Errorf("Failed to create etcd nodes necessary to deploy a training job")
@@ -240,7 +241,7 @@ func (s *lcmService) deployDistributedTrainingJob(ctx context.Context, req *serv
 	}
 }
 
-//Kills a currently executing training job and cleans up its zookeeper entries
+//Kills a currently executing training job
 func (s *lcmService) KillTrainingJob(ctx context.Context, req *service.JobKillRequest) (*service.JobKillResponse, error) {
 	counter := finishedTrainingCounter.With(outcome, killed)
 	counter.With(progress, started).Add(1)

@@ -17,8 +17,8 @@
 package lcm
 
 import (
-	"github.com/AISphere/ffdl-commons/config"
 	"github.com/cenkalti/backoff"
+	"github.com/AISphere/ffdl-commons/config"
 
 	"time"
 

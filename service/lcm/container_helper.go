@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 package lcm
 
 import (
@@ -23,8 +24,8 @@ import (
 	"text/template"
 
 	"github.com/AISphere/ffdl-commons/config"
-	"github.com/AISphere/ffdl-lcm/lcmconfig"
 	"github.com/AISphere/ffdl-lcm/service"
+	"github.com/AISphere/ffdl-lcm/lcmconfig"
 	"github.com/AISphere/ffdl-lcm/service/lcm/learner"
 	yaml "gopkg.in/yaml.v2"
 
@@ -208,7 +209,7 @@ func fetchImageNameFromEvaluationMetrics(evalMetricsString string,
 }
 
 func findTrainingDataServiceTag(k8sClient kubernetes.Interface, logr *logger.LocLoggingEntry) string {
-	selector := "service==" + config.GetTDSServiceName()
+	selector := fmt.Sprintf("service==%s", config.GetTDSServiceName())
 	podInterface := k8sClient.Core().Pods(config.GetPodNamespace())
 	pods, err := podInterface.List(metav1.ListOptions{LabelSelector: selector})
 	if err != nil {

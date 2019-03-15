@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
+
 package lcm
 
 import (
 	"testing"
 
-	"github.com/AISphere/ffdl-commons/config"
 	"github.com/stretchr/testify/assert"
+	"github.com/AISphere/ffdl-commons/config"
 
 	"github.com/AISphere/ffdl-lcm/service"
 )

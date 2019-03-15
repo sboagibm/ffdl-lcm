@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
+
 package lcm
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/AISphere/ffdl-commons/config"
@@ -26,7 +28,7 @@ import (
 	"github.com/AISphere/ffdl-lcm/service"
 
 	"github.com/spf13/viper"
-	"k8s.io/api/apps/v1beta1"
+	v1beta1 "k8s.io/api/apps/v1beta1"
 	v1core "k8s.io/api/core/v1"
 	v1resource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -128,6 +130,8 @@ func defineJobMonitorDeployment(req *service.JobDeploymentRequest, envVars []v1c
 	} else {
 		dockerRegistry = viper.GetString(config.LearnerRegistryKey)
 	}
+
+	fmt.Sprintf("%s/jobmonitor:%s", dockerRegistry, jmTag)
 	jmImage := jobmonitorImageNameExtended(dockerRegistry, jmTag)
 	imagePullSecret := viper.GetString(config.LearnerImagePullSecretKey)
 

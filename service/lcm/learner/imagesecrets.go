@@ -21,9 +21,9 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/spf13/viper"
 	"github.com/AISphere/ffdl-commons/config"
 	"github.com/AISphere/ffdl-lcm/service"
-	"github.com/spf13/viper"
 	v1core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

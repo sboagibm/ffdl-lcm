@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 package lcm
 
 import (
@@ -23,8 +24,8 @@ import (
 
 	"github.com/AISphere/ffdl-commons/config"
 
-	"github.com/AISphere/ffdl-commons/util"
 	"github.com/AISphere/ffdl-lcm/service"
+	"github.com/AISphere/ffdl-commons/util"
 
 	"github.com/spf13/viper"
 	"golang.org/x/net/context"

@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
+
 package jobmonitor
 
 import (
-	"github.com/AISphere/ffdl-commons/logger"
 	log "github.com/sirupsen/logrus"
+	"github.com/AISphere/ffdl-commons/logger"
 )
 
 //InitLogger ... initializes new logger with trainingID and userID

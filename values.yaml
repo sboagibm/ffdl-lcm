@@ -35,5 +35,6 @@ etcd:
   username: test
   password: test
   prefix: test
+  cert: test
 log:
   level: INFO

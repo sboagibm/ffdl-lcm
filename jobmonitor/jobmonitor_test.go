@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
+
 package jobmonitor
 
 import (
 	"reflect"
 	"testing"
 
-	"github.com/AISphere/ffdl-commons/config"
-	"github.com/AISphere/ffdl-commons/metricsmon"
 	"github.com/go-kit/kit/metrics"
 	"github.com/stretchr/testify/assert"
+	"github.com/AISphere/ffdl-commons/config"
+	"github.com/AISphere/ffdl-commons/metricsmon"
 )
 
 func init() {

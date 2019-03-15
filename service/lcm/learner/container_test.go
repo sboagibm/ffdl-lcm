@@ -107,21 +107,20 @@ func TestGenerateResourceRequirementsKubeMinor11(t *testing.T) {
 
 	expectedRequirements := v1core.ResourceRequirements{
 		Requests: v1core.ResourceList{
-			v1core.ResourceCPU:    *cpuCount,
-			v1core.ResourceMemory: *memCount,
-			"nvidia.com/gpu":      *gpuCount,
+			v1core.ResourceCPU:       *cpuCount,
+			v1core.ResourceMemory:    *memCount,
+			"nvidia.com/gpu":         *gpuCount,
 		},
 		Limits: v1core.ResourceList{
-			v1core.ResourceCPU:    *cpuCount,
-			v1core.ResourceMemory: *memCount,
-			"nvidia.com/gpu":      *gpuCount,
+			v1core.ResourceCPU:       *cpuCount,
+			v1core.ResourceMemory:    *memCount,
+			"nvidia.com/gpu":         *gpuCount,
 		},
 	}
 	actualRequirements := generateResourceRequirements(*cpuCount, *memCount, *gpuCount, "1", "11")
 
 	assert.Equal(t, expectedRequirements, actualRequirements)
 }
-
 // END TODO
 
 func TestGenerateResourceRequirementsKubeMinor8Plus(t *testing.T) {

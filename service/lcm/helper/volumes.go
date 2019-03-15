@@ -31,6 +31,11 @@ type ETCDVolume struct {
 	MountSpec VolumeMountSpec
 }
 
+type SSLVolume struct {
+	Name      string
+	MountSpec VolumeMountSpec
+}
+
 //LocalVolume ...
 type LocalVolume struct {
 	Name      string
@@ -46,6 +51,7 @@ type SharedNFSVolume struct {
 
 //Volumes ...
 type Volumes struct {
+	SSLVolume                         *SSLVolume
 	ETCDVolume                        *ETCDVolume
 	SharedSplitLearnerHelperVolume    *SharedNFSVolume
 	SharedNonSplitLearnerHelperVolume *LocalVolume
@@ -67,12 +73,12 @@ func CreatePVCFromBOM(sharedVolumeClaim *v1core.PersistentVolumeClaim, k8sClient
 
 //CreateETCDVolume ...
 func (volumes Volumes) CreateSSLVolume() v1core.Volume {
-	return createSSLVolume(volumes.ETCDVolume.Name)
+	return createSSLVolume(volumes.SSLVolume.Name)
 }
 
 //CreateETCDVolumeMount ...
 func (volumes Volumes) CreateSSLVolumeMount() v1core.VolumeMount {
-	return createSSLVolumeMount(volumes.ETCDVolume.Name)
+	return createSSLVolumeMount(volumes.SSLVolume.Name)
 }
 
 //CreateETCDVolume ...
@@ -174,7 +180,7 @@ func hostDirJobVolume(name string, trainingID string) v1core.Volume {
 	path := fmt.Sprintf("/dlaasjobs/%s", trainingID)
 	var hostDirName v1core.HostPathType = v1core.HostPathDirectoryOrCreate
 	return v1core.Volume{
-		Name: name,
+		Name:         name,
 		VolumeSource: v1core.VolumeSource{
 			HostPath: &v1core.HostPathVolumeSource{
 				Path: path,

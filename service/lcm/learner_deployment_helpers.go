@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 package lcm
 
 import (
@@ -26,10 +27,10 @@ import (
 
 	"github.com/AISphere/ffdl-lcm/service/lcm/policies"
 
+	"github.com/sirupsen/logrus"
 	"github.com/AISphere/ffdl-lcm/service/lcm/certs"
 	"github.com/AISphere/ffdl-lcm/service/lcm/helper"
 	"github.com/AISphere/ffdl-lcm/service/lcm/learner"
-	"github.com/sirupsen/logrus"
 
 	"github.com/AISphere/ffdl-commons/config"
 	"github.com/AISphere/ffdl-commons/logger"
@@ -106,15 +107,15 @@ type learnerDefinition struct {
 }
 
 type helperDefinition struct {
-	sharedVolume        v1core.Volume
+	sharedVolume      v1core.Volume
 	sslCertsVolume      v1core.Volume
 	sslCertsVolumeMount v1core.VolumeMount
-	etcdVolume          v1core.Volume
-	etcdVolumeMount     v1core.VolumeMount
-	sharedVolumeMount   v1core.VolumeMount
-	sharedEnvVars       []v1core.EnvVar
-	sharedVolumeClaim   *v1core.PersistentVolumeClaim
-	name                string
+	etcdVolume        v1core.Volume
+	etcdVolumeMount   v1core.VolumeMount
+	sharedVolumeMount v1core.VolumeMount
+	sharedEnvVars     []v1core.EnvVar
+	sharedVolumeClaim *v1core.PersistentVolumeClaim
+	name              string
 }
 
 //NewTraining ...
@@ -167,13 +168,13 @@ func NewTraining(ctx context.Context, k8sClient kubernetes.Interface, req *servi
 	helperDefn := helperDefinition{
 		sslCertsVolume:      helperVolumes.CreateSSLVolume(),
 		sslCertsVolumeMount: helperVolumes.CreateSSLVolumeMount(),
-		etcdVolume:          helperVolumes.CreateETCDVolume(),
-		etcdVolumeMount:     helperVolumes.CreateETCDVolumeMount(),
-		sharedEnvVars:       envVarsFromDeploymentRequest,
-		sharedVolume:        helperVolumes.CreateDataVolume(req.Name),
-		sharedVolumeMount:   helperVolumes.CreateDataVolumeMount(),
-		sharedVolumeClaim:   helperVolumes.DynamicPVCReference(),
-		name:                helperName,
+		etcdVolume:        helperVolumes.CreateETCDVolume(),
+		etcdVolumeMount:   helperVolumes.CreateETCDVolumeMount(),
+		sharedEnvVars:     envVarsFromDeploymentRequest,
+		sharedVolume:      helperVolumes.CreateDataVolume(req.Name),
+		sharedVolumeMount: helperVolumes.CreateDataVolumeMount(),
+		sharedVolumeClaim: helperVolumes.DynamicPVCReference(),
+		name:              helperName,
 	}
 
 	if helperVolumes.SharedNonSplitLearnerHelperVolume != nil {
@@ -305,6 +306,7 @@ func volumesForHelper(req *service.JobDeploymentRequest, logr *logger.LocLogging
 	volumesStruct := helper.Volumes{}
 
 	volumesStruct.ETCDVolume = &helper.ETCDVolume{Name: "etcd-ssl-cert"}
+	volumesStruct.SSLVolume = &helper.SSLVolume{Name: "ssl-certificates"}
 
 	volumeSize := getStorageSize(req.Resources)
 	logr.Debugf("Requested storage for job of size %d bytes", volumeSize)

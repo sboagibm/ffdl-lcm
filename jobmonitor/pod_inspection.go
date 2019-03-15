@@ -32,10 +32,8 @@ import (
 func (jm *JobMonitor) checkIfJobStarted(logr *logger.LocLoggingEntry) {
 	selector := "training_id==" + jm.TrainingID
 	logr.Debugf("(Job Monitor checkIfJobStarted) Checking if there are kubernetes learner PODS associated with training job %s", jm.TrainingID)
-
 	for i := 1; i <= insuffResourcesRetries; i++ {
 		pods, err := jm.k8sClient.Core().Pods(config.GetLearnerNamespace()).List(metav1.ListOptions{LabelSelector: selector})
-
 		numPending := 0
 		numRunning := 0
 		numFailed := 0
@@ -63,6 +61,11 @@ func (jm *JobMonitor) checkIfJobStarted(logr *logger.LocLoggingEntry) {
 					containerStatuses := pod.Status.ContainerStatuses
 					for _, containerStatus := range containerStatuses {
 						if containerStatus.State.Waiting != nil {
+							if containerStatus.State.Waiting.Reason == "ErrImagePull" {
+								updateJobStatusOnError(jm.TrainingID, jm.UserID, trainerClient.ErrCodeImagePull, service.StatusMessages_INTERNAL_ERROR.String(), logr, jm.metrics)
+								KillDeployedJob(jm.TrainingID, jm.UserID, jm.JobName, logr)
+								return
+							}
 							reason := containerStatus.State.Waiting.Reason
 							message := containerStatus.State.Waiting.Message
 							logr.Debugf("Container Waiting Reason is %s message is %s", reason, message)
@@ -105,7 +108,6 @@ func (jm *JobMonitor) checkIfJobStarted(logr *logger.LocLoggingEntry) {
 		if i == insuffResourcesRetries && numPending >= 1 {
 			jm.metrics.InsufficientK8sResourcesErrorCounter.Add(1)
 			updateJobStatusOnError(jm.TrainingID, jm.UserID, trainerClient.ErrCodeInsufficientResources, service.StatusMessages_INSUFFICIENT_RESOURCES.String(), logr, jm.metrics)
-			time.Sleep(30 * time.Second)
 			KillDeployedJob(jm.TrainingID, jm.UserID, jm.JobName, logr)
 			return
 		}
@@ -113,6 +115,7 @@ func (jm *JobMonitor) checkIfJobStarted(logr *logger.LocLoggingEntry) {
 		if numFailed >= 1 && i == insuffResourcesRetries {
 			updateJobStatusOnError(jm.TrainingID, jm.UserID, trainerClient.ErrFailedPodReasonUnknown, service.StatusMessages_INTERNAL_ERROR.String(), logr, jm.metrics)
 			KillDeployedJob(jm.TrainingID, jm.UserID, jm.JobName, logr)
+			return
 		}
 
 		time.Sleep(30 * time.Second)
