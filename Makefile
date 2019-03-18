@@ -26,7 +26,7 @@ protoc: protoc-trainer                 ## Build gRPC .proto files into vendor di
 
 install-deps: install-deps-base protoc build-health-checker-deps ## Remove vendor directory, rebuild dependencies
 
-glide-update: glide-update-base        ## Run full glide rebuild
+glide-update: glide-update-base protoc       ## Run full glide rebuild
 
 # === Health Checker Sub Build ===
 
